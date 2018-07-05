@@ -1,8 +1,8 @@
 
 let turn = 'x';
 
-//the plays on the board 'x', 'o', and 'b' for blank
-let plays = ['b','b','b','b','b','b','b','b','b'];
+//the plays on the board 'x', 'o', and '_' for blank
+let plays = ['_','_','_','_','_','_','_','_','_'];
 
 const startButton = document.querySelector('#button-start');
 const playerX = document.querySelector('#playerX');
@@ -21,13 +21,19 @@ paramaters: - className - the class name to retrive the screen to switch to
     newScreen.classList.add('current-screen');
 }
 
-function checkForWin(plays)
+/*description - checks if someone has won the game
+paramaters: plays - an array of 9 character values that are all 'x', 'o', or '_'
+                    for blank
+returns: 'x' or 'o' if the respective player won or '_' if no one won
+*/ function checkForWin(plays)
 {
+    //an object that represents all the possible win outcomes by box index
     let check =
     {
         horizontal: '012/345/678/', vertical: '036/147/258/', diagonal: '048/246/'
     };
 
+    //replaces 'check' indexes with the respective value from 'plays'
     check = plays.reduce((check, play, index) =>
     {
         check.horizontal = check.horizontal.replace(`${index}`, play);
@@ -37,9 +43,11 @@ function checkForWin(plays)
         return check;
     }, check);
 
+    //scans the object for any instances of 'xxx/' or 'ooo/' which indicates a
+    //win
     const winner = Object.values(check).reduce((result, direction) =>
     {
-        if(result !== 'b')
+        if(result !== '_')
         {
             return result;
         }
@@ -51,8 +59,9 @@ function checkForWin(plays)
         {
             return 'o';
         }
-        return 'b';
-    }, 'b');
+        return '_';
+    }, '_');
+
     return winner;
 }
 
@@ -95,12 +104,13 @@ const boxHandler_click = event =>
     {
         //displays the box as taken to user
         box.classList.add(`box-filled-${turn}`);
+        //stores the play this turn into memory
         plays[box.value] = turn;
+        const winner = checkForWin(plays);
         //changes the turn
         turn = alternateTurn(turn, playerX, playerO);
-        const winner = checkForWin(plays);
 
-        if(winner !== 'b')
+        if(winner !== '_')
         {
             console.log(`Player of the ${winner}'s won the game!`);
         }
