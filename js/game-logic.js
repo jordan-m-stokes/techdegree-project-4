@@ -71,17 +71,85 @@ returns: - matches - an object containing all possible horizontal vertical
         horizontal: '012/345/678/', vertical: '036/147/258/', diagonal: '048/246/'
     };
 
-    //replaces 'check' indexes with the respective value from 'plays'
+    //replaces 'matches' indexes with the respective value from 'plays'
     matches = plays.reduce((matches, play, index) =>
     {
         matches.horizontal = matches.horizontal.replace(`${index}`, play);
         matches.vertical = matches.vertical.replace(`${index}`, play);
         matches.diagonal = matches.diagonal.replace(`${index}`, play);
         matches.diagonal = matches.diagonal.replace(`${index}`, play);
+
         return matches;
+
     }, matches);
 
     return matches;
+}
+
+/*description - takes matches and condenses it into a simpler structure of
+                number x's in a line, number of o's in a line, and then a slash
+                example is "x_o/" would be "11/" and "oo_" would be "02/"
+paramaters: - plays - an array of 9 character values that are all 'x', 'o', or
+                      '_' for blank
+returns: - matches - an object containing all possible horizontal vertical
+                     and diagonal matches
+*/ function simplifyMatches(matches)
+{
+    let simplifiedMatches =
+    {
+        horizontal: '', vertical: '', diagonal: ''
+    };
+
+    let horizontalArray = matches.horizontal.split('');
+    let verticalArray = matches.vertical.split('');
+    let diagonalArray = matches.diagonal.split('');
+
+    //used in conjuction with the function 'simplify'
+    let xBuffer = 0;
+    let oBuffer = 0;
+
+    function simplify(result, character)
+    {
+        if(character === '/')
+        {
+            result += `${xBuffer}${oBuffer}/`;
+            xBuffer = 0;
+            oBuffer = 0;
+        }
+        else if(character === 'x')
+        {
+            xBuffer++;
+        }
+        else if(character === 'o')
+        {
+            oBuffer++;
+        }
+        return result;
+    }
+
+    simplifiedMatches.horizontal = horizontalArray.reduce(simplify, '');
+    simplifiedMatches.vertical = verticalArray.reduce(simplify, '');
+    simplifiedMatches.diagonal = diagonalArray.reduce(simplify, '');
+
+    return simplifiedMatches;
+}
+
+function determineExactPlay(simplifiedMatches, typeOfPlay)
+{
+    console.log(typeOfPlay);
+    simplifiedMatches = simplifiedMatches.horizontal + simplifiedMatches.vertical + simplifiedMatches.diagonal;
+    simplifiedMatches = simplifiedMatches.split('/');
+
+    indexesAvailable = simplifiedMatches.reduce((indexesAvailable, match, index) =>
+    {
+        if(match + '/' === typeOfPlay)
+        {
+            indexesAvailable.push(index);
+        }
+        return indexesAvailable;
+    }, []);
+
+    return indexesAvailable[Math.floor( Math.random() * (indexesAvailable.length - 1))];
 }
 
 /*description - checks if someone has won the game
@@ -90,11 +158,6 @@ paramaters: - plays - an array of 9 character values that are all 'x', 'o', or
 returns: 'x' or 'o' if the respective player won or '_' if no one won
 */ function checkForWin(plays)
 {
-    if(plays.indexOf('_') === -1)
-    {
-        return 't';
-    }
-
     let matches = getPossibleMatches(plays);
 
     //scans the object for any instances of 'xxx/' or 'ooo/' which indicates a
@@ -116,15 +179,57 @@ returns: 'x' or 'o' if the respective player won or '_' if no one won
         return '_';
     }, '_');
 
+    if(plays.indexOf('_') === -1 && winner === '_')
+    {
+        return 't';
+    }
+
     return winner;
 }
 
 /* description - finds a play for the computer
 paramaters: - plays - an array of 9 character values that are all 'x', 'o', or
                       '_' for blank
-*/  function findPlay(plays)
+*/  function searchForPlay(plays)
 {
+    let matches = getPossibleMatches(plays);
+    let simplifiedMatches = simplifyMatches(matches);
+    const matchIndexes = '012/345/678/036/147/258/048/246/';
+    const logicalPlays = [
+        '02/',  //checks if there is a play for a win
+        '20/',  //checks if the opponent needs to be blocked from a win
+        '01/',  //checks for possibility of two o tiles and a blank spot
+        '00/'   //checks for possibility of one o tile in a line of blank spots
+    ];
+    let isPlay = false;
+    let matchIndex = -1;
+    console.log(simplifiedMatches);
 
+    logicalPlays.forEach(play =>
+    {
+        isPlay = ((simplifiedMatches.horizontal.includes(play)) || (simplifiedMatches.vertical.includes(play)) || (simplifiedMatches.diagonal.includes(play)));
+
+        if(isPlay && matchIndex === -1)
+        {
+            matchIndex = determineExactPlay(simplifiedMatches, play);
+        }
+    });
+
+    if(matchIndex > -1)
+    {
+        let indexesForMatch = matchIndexes.split('/')[matchIndex].split('');
+
+        for(let i = 0; i < indexesForMatch.length; i++)
+        {
+            if(plays[indexesForMatch[i]] === '_')
+            {
+                return indexesForMatch[i];
+            }
+        }
+    }
+
+    //checks for a play anywhere
+    return plays.indexOf('_');
 }
 
 /* description - alternates the 'currentTurn' from 'x' to 'o' or vise-versa
@@ -230,17 +335,43 @@ const boxHandler_click = event =>
     //checks to make sure box isn't already taken
     if(!box.className.includes('box-filled'))
     {
-        //displays the box as taken to user
-        box.classList.add(`box-filled-${turn}`);
-        //stores the play this turn into memory
-        plays[box.value] = turn;
-        const winner = checkForWin(plays);
-        //changes the turn
-        turn = alternateTurn(turn, playerX, playerO);
-
-        if(winner !== '_')
+        function enactTurn(box, playIndex)
         {
-            toggleWin(winner, screenWin);
+            //displays the box as taken to user
+            box.classList.add(`box-filled-${turn}`);
+            //stores the play this turn into memory
+            plays[playIndex] = turn;
+            const winner = checkForWin(plays);
+            //changes the turn
+            turn = alternateTurn(turn, playerX, playerO);
+
+            if(winner !== '_')
+            {
+                if(winner === 'o')
+                {
+                    setTimeout(() => toggleWin(winner, screenWin), 1250);
+                }
+                else
+                {
+                    toggleWin(winner, screenWin)
+                }
+            }
+        }
+
+        if(turn !== 'o' || !playerO.computer)
+        {
+            enactTurn(box, box.value);
+        }
+
+
+        if(turn === 'o' && playerO.computer)
+        {
+            let index = searchForPlay(plays);
+
+            if(index != -1)
+            {
+                setTimeout(() => enactTurn(boxes[index], index), 1000 + Math.floor(Math.random() * 1000));
+            }
         }
     }
 };
@@ -252,7 +383,7 @@ const boxHandler_mouseover = event =>
     const box = event.target;
 
     //checks to make sure box isn't already taken
-    if(!box.className.includes('box-filled'))
+    if(!box.className.includes('box-filled') && (!playerO.computer || turn === 'x'))
     {
         //sets mouseover image
         event.target.style.backgroundImage = `url(img/${turn}.svg)`;
@@ -271,7 +402,5 @@ boxes.forEach(box => box.addEventListener('mouseout', boxHandler_mouseout));
 boxes.forEach(box => box.addEventListener('click', boxHandler_click));
 
 playerEntry.focus();
-
-
 
 /**/
