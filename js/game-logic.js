@@ -158,12 +158,21 @@ returns: - simplifiedMatches - (object) a simplified object containing all
     return simplifiedMatches;
 }
 
-function determineExactPlay(simplifiedMatches, typeOfPlay)
+/*description - figures out the the exact move for the computer to make, having
+                already figured out the type of play the computer will make
+paramaters: - simplifiedMatches - (object) an object created from the
+                                  "simplifyMatches" method
+            - typeOfPlay - (string) the type of play the computer is looking to
+                           make (see method searchForPlay's constant
+                           "logicalPlays" for reference)
+*/ function determineExactPlay(simplifiedMatches, typeOfPlay)
 {
-    console.log(typeOfPlay);
+    //combines horizontal, vertical, and diagonal matches, and splits the
+    //resulting string into an array
     simplifiedMatches = simplifiedMatches.horizontal + simplifiedMatches.vertical + simplifiedMatches.diagonal;
     simplifiedMatches = simplifiedMatches.split('/');
 
+    //iterates through matches and finds all instances of given "typeOfPlay"
     indexesAvailable = simplifiedMatches.reduce((indexesAvailable, match, index) =>
     {
         if(match + '/' === typeOfPlay)
@@ -173,13 +182,15 @@ function determineExactPlay(simplifiedMatches, typeOfPlay)
         return indexesAvailable;
     }, []);
 
+    //takes the result of "indexesAvailable" and returns something at random
     return indexesAvailable[Math.floor( Math.random() * (indexesAvailable.length - 1))];
 }
 
 /*description - checks if someone has won the game
-paramaters: - plays - an array of 9 character values that are all 'x', 'o', or
-                      '_' for blank
-returns: 'x' or 'o' if the respective player won or '_' if no one won
+paramaters: - plays - (array) collection of 9 character values that are all 'x',
+                      'o', or '_' for blank
+returns: (string) 'x' or 'o' if the respective player won, 't' for tie, or '_'
+         if game isn't over
 */ function checkForWin(plays)
 {
     let matches = getPossibleMatches(plays);
@@ -203,6 +214,7 @@ returns: 'x' or 'o' if the respective player won or '_' if no one won
         return '_';
     }, '_');
 
+    //checks for a tie
     if(plays.indexOf('_') === -1 && winner === '_')
     {
         return 't';
@@ -212,37 +224,53 @@ returns: 'x' or 'o' if the respective player won or '_' if no one won
 }
 
 /* description - finds a play for the computer
-paramaters: - plays - an array of 9 character values that are all 'x', 'o', or
-                      '_' for blank
+paramaters: - plays - (array) a collection of 9 character values that are all
+                      'x', 'o', or '_' for blank
+returns: (integer) the index for the computer to play
 */  function searchForPlay(plays)
 {
+    //all possible win combinations
     let matches = getPossibleMatches(plays);
+    //a dumbed down version of possible win combinations (Basically, a count
+    //of numbers of x's, o's, and blanks of each win combination on the board)
     let simplifiedMatches = simplifyMatches(matches);
+    //the indexes for win combinations, based on a board like this:  0 1 2
+    //                                                               3 4 5
+    //                                                               6 7 8
     const matchIndexes = '012/345/678/036/147/258/048/246/';
-    const logicalPlays = [
+    // the number of x's and o's respectively in a match possibility
+    const typeOfPlays = [
         '02/',  //checks if there is a play for a win
         '20/',  //checks if the opponent needs to be blocked from a win
         '01/',  //checks for possibility of two o tiles and a blank spot
         '00/'   //checks for possibility of one o tile in a line of blank spots
     ];
-    let isPlay = false;
+    //the index for the variable 'matchIndexes' to chose
     let matchIndex = -1;
-    console.log(simplifiedMatches);
 
-    logicalPlays.forEach(play =>
+    //iterates through 'typeOfPlays' in respective order, and determines an
+    //exact 'typeOfPlay' once the best option is found
+    typeOfPlays.forEach(typeOfPlay =>
     {
-        isPlay = ((simplifiedMatches.horizontal.includes(play)) || (simplifiedMatches.vertical.includes(play)) || (simplifiedMatches.diagonal.includes(play)));
+        //checks the possiblility of given 'typeOfPlay'
+        let isPlay = ((simplifiedMatches.horizontal.includes(typeOfPlay)) || (simplifiedMatches.vertical.includes(typeOfPlay)) || (simplifiedMatches.diagonal.includes(typeOfPlay)));
 
+        //if a typeOfPlay has not yet been determined and a typeOfPlay has now
+        //been determined than an exact 'matchIndex' is determined
         if(isPlay && matchIndex === -1)
         {
-            matchIndex = determineExactPlay(simplifiedMatches, play);
+            matchIndex = determineExactPlay(simplifiedMatches, typeOfPlay);
         }
     });
 
+    //checks if a play was found
     if(matchIndex > -1)
     {
+        //finds match
         let indexesForMatch = matchIndexes.split('/')[matchIndex].split('');
 
+        //iterates through the three spots of the match to find the blank spot
+        //to play an 'o'
         for(let i = 0; i < indexesForMatch.length; i++)
         {
             if(plays[indexesForMatch[i]] === '_')
@@ -252,15 +280,15 @@ paramaters: - plays - an array of 9 character values that are all 'x', 'o', or
         }
     }
 
-    //checks for a play anywhere
+    //if a logical play is not found an 'o' is placed anywhere that is blank
     return plays.indexOf('_');
 }
 
 /* description - alternates the 'currentTurn' from 'x' to 'o' or vise-versa
-paramaters: - currentTurn - the turn to alterante ('x' or 'y')
-            - playerO     - the element representing player X's turn
-            - playerO     - the element representing player O's turn
-returns: - turn - the alternated turn
+paramaters: - currentTurn - (string) the turn to alterante ('x' or 'y')
+            - playerO     - (element) represents player X's turn
+            - playerO     - (element) represents player O's turn
+returns: - turn - (string) the alternated turn
 */ function alternateTurn(currentTurn, playerX, playerO)
 {
     //the new turn
@@ -273,9 +301,9 @@ returns: - turn - the alternated turn
 }
 
 /*description - toggles win screen for given winner
-paramaters: - winner - the winner 'x' 'o' or 't' for tie
-            - name - the name of the winner
-            - screen - the win screen to switch to
+paramaters: - winner - (string) the winner 'x' 'o' or 't' for tie
+            - name - (string)  the name of the winner
+            - screen - (element) the win screen to switch to
 */ function toggleWin(winner, name, screen)
 {
     const message = screen.querySelector('.message');
@@ -289,6 +317,18 @@ paramaters: - winner - the winner 'x' 'o' or 't' for tie
     winnerName.textContent = name.toUpperCase();
     winnerName.style.color = `rgba(${color}, ${color}, ${color}, 0.3)`
 }
+
+playerEntry.addEventListener('keyup', event =>
+{
+    if(playerEntry.placeholder.includes('O'))
+    {
+        startButton.textContent = (playerEntry.value === '') ? ('Or Play With Computer') : ('Start Game');
+    }
+    if(event.keyCode === 13)
+    {
+        startButtonHandler(event);
+    }
+});
 
 //a handler for the start button to start the game
 startButtonHandler = event =>
@@ -320,22 +360,9 @@ startButtonHandler = event =>
 
 };
 
-//a handler for the start button to start the game
 startButton.addEventListener('click', startButtonHandler);
 
-
-playerEntry.addEventListener('keyup', event =>
-{
-    if(playerEntry.placeholder.includes('O'))
-    {
-        startButton.textContent = (playerEntry.value === '') ? ('Or Play With Computer') : ('Start Game');
-    }
-    if(event.keyCode === 13)
-    {
-        startButtonHandler(event);
-    }
-});
-
+//a partial handler for switch and restart buttons
 const restartHandler = event =>
 {
     //removes who won from win screen
@@ -374,6 +401,10 @@ switchButton.addEventListener('click', event =>
 //a handler for when the player tries to play on a box
 const boxHandler_click = event =>
 {
+    if(turn === 'o' && playerO.computer)
+    {
+        return;
+    }
     const box = event.target;
 
     //checks to make sure box isn't already taken
@@ -427,12 +458,13 @@ const boxHandler_click = event =>
 const boxHandler_mouseover = event =>
 {
     const box = event.target;
+    const toDisplay = (playerO.computer) ? 'x' : turn;
 
     //checks to make sure box isn't already taken
-    if(!box.className.includes('box-filled') && (!playerO.computer || turn === 'x'))
+    if(!box.className.includes('box-filled'))
     {
         //sets mouseover image
-        event.target.style.backgroundImage = `url(img/${turn}.svg)`;
+        event.target.style.backgroundImage = `url(img/${toDisplay}.svg)`;
     }
 };
 
@@ -447,6 +479,7 @@ boxes.forEach(box => box.addEventListener('mouseover', boxHandler_mouseover));
 boxes.forEach(box => box.addEventListener('mouseout', boxHandler_mouseout));
 boxes.forEach(box => box.addEventListener('click', boxHandler_click));
 
+//focuses on text box for user to type their name
 playerEntry.focus();
 
 /**/
