@@ -1,7 +1,13 @@
 
+//Player class, you guessed it, represents a tic-tac-toe player
 class Player
 {
-    constructor(name, element, computer)
+    /*paramaters: - name     - (string) the players name
+                  - element  - (element) the element representing the player on
+                              on the board
+                  - computer - (boolean) whether the player is a computer or
+                               computer controlled
+    */ constructor(name, element, computer)
     {
         this.name = name;
         this.element = element;
@@ -9,6 +15,7 @@ class Player
         this.span.textContent = name;
         this.computer = computer;
 
+        //if player is a computer, the player's name is set to 'computer'
         if(computer)
         {
             this.name = 'Computer';
@@ -16,7 +23,9 @@ class Player
         }
     }
 
-    activate(active)
+    /*description - called to switch the player to their turn
+    paramaters: - active - (boolean) whether the player is on his turn
+    */ activate(active)
     {
         if(active)
         {
@@ -36,6 +45,7 @@ let plays = ['_','_','_','_','_','_','_','_','_'];
 
 const startButton = document.querySelector('#button-start');
 const restartButton = document.querySelector('#button-restart');
+const switchButton = document.querySelector('#button-switch');
 
 const screenStart = document.querySelector('.screen-start');
 const screenBoard = document.querySelector('.screen-board');
@@ -48,7 +58,7 @@ let playerO;
 const boxes = document.querySelectorAll(".box");
 
 /* description - changes the current screen to display on webpage
-paramaters: - screen - the screen to switch to
+paramaters: - screen - (element) the screen to switch to
 */ function switchScreen(screen)
 {
     const currentScreen = document.querySelector('.current-screen');
@@ -59,9 +69,9 @@ paramaters: - screen - the screen to switch to
 }
 
 /*description - gets info for all possible win outcomes
-paramaters: - plays - an array of 9 character values that are all 'x', 'o', or
-                      '_' for blank
-returns: - matches - an object containing all possible horizontal vertical
+paramaters: - plays - (array) a collection of 9 character values that are all
+                      'x', 'o', or '_' for blank
+returns: - matches - (object) an object containing all possible horizontal vertical
                      and diagonal matches
 */ function getPossibleMatches(plays)
 {
@@ -89,10 +99,11 @@ returns: - matches - an object containing all possible horizontal vertical
 /*description - takes matches and condenses it into a simpler structure of
                 number x's in a line, number of o's in a line, and then a slash
                 example is "x_o/" would be "11/" and "oo_" would be "02/"
-paramaters: - plays - an array of 9 character values that are all 'x', 'o', or
-                      '_' for blank
-returns: - matches - an object containing all possible horizontal vertical
-                     and diagonal matches
+paramaters: - matches - (object) an object containing all possible horizontal,
+                        vertical, and diagonal matches
+returns: - simplifiedMatches - (object) a simplified object containing all
+                               possible horizontal, vertical, and diagonal
+                               matches
 */ function simplifyMatches(matches)
 {
     let simplifiedMatches =
@@ -100,22 +111,32 @@ returns: - matches - an object containing all possible horizontal vertical
         horizontal: '', vertical: '', diagonal: ''
     };
 
+    //turns strings into arrays
     let horizontalArray = matches.horizontal.split('');
     let verticalArray = matches.vertical.split('');
     let diagonalArray = matches.diagonal.split('');
 
-    //used in conjuction with the function 'simplify'
+    //used in conjuction with the function 'simplify' bellow
     let xBuffer = 0;
     let oBuffer = 0;
 
-    function simplify(result, character)
+    /* description - turns match into simplified match
+    paramaters: result    - (string) the value to add onto
+                character - (character) the current character to evaluate
+    returns: result;
+    */ function simplify(result, character)
     {
+        // a '/' indicates a new possible match needs to be evaluated, and the
+        //previous match data is stored into the result variable and clears
+        //the buffers
         if(character === '/')
         {
             result += `${xBuffer}${oBuffer}/`;
             xBuffer = 0;
             oBuffer = 0;
         }
+        //checks if tile contains an x or an o and then increases the respective
+        //buffer
         else if(character === 'x')
         {
             xBuffer++;
@@ -127,6 +148,9 @@ returns: - matches - an object containing all possible horizontal vertical
         return result;
     }
 
+    //simplifies horizontal, vertical, and diagonal matches by iterating
+    //over the character arrays and storing the result in the
+    //'simplifiedMatches' properties
     simplifiedMatches.horizontal = horizontalArray.reduce(simplify, '');
     simplifiedMatches.vertical = verticalArray.reduce(simplify, '');
     simplifiedMatches.diagonal = diagonalArray.reduce(simplify, '');
@@ -250,15 +274,20 @@ returns: - turn - the alternated turn
 
 /*description - toggles win screen for given winner
 paramaters: - winner - the winner 'x' 'o' or 't' for tie
+            - name - the name of the winner
             - screen - the win screen to switch to
-*/ function toggleWin(winner, screen)
+*/ function toggleWin(winner, name, screen)
 {
     const message = screen.querySelector('.message');
+    const winnerName = screen.querySelector('.winner');
+    const color = (winner === 'x') ? 205 : 0;
 
     switchScreen(screen);
 
     screen.classList.add(`screen-win-${winner}`);
     message.textContent = (winner === 't') ? ('It\'s a Cat!') : ('Winner');
+    winnerName.textContent = name.toUpperCase();
+    winnerName.style.color = `rgba(${color}, ${color}, ${color}, 0.3)`
 }
 
 //a handler for the start button to start the game
@@ -284,6 +313,7 @@ startButtonHandler = event =>
         //switches to player entry info for player x just in case
         playerEntry.value = '';
         playerEntry.placeholder = `Player X's Name...`;
+        startButton.textContent = 'Next';
         //starts game
         switchScreen(screenBoard);
     }
@@ -306,8 +336,7 @@ playerEntry.addEventListener('keyup', event =>
     }
 });
 
-//a handler for the restart button to restart the game
-restartButton.addEventListener('click', event =>
+const restartHandler = event =>
 {
     //removes who won from win screen
     screenWin.classList = screenWin.className.split(' ').reduce((allClasses, className) =>
@@ -322,9 +351,24 @@ restartButton.addEventListener('click', event =>
     }
     plays = plays.map(play => '_');
     turn = alternateTurn('o', playerX, playerO);
+}
 
+//a handler for the restart button to restart the game
+restartButton.addEventListener('click', event =>
+{
+    restartHandler(event);
     //switches to board screen
     switchScreen(screenBoard);
+});
+
+//a handler for switch button to allow user to switch players at the end of a
+//game
+switchButton.addEventListener('click', event =>
+{
+    restartHandler(event);
+    //switches to board screen
+    switchScreen(screenStart);
+    playerEntry.focus();
 });
 
 //a handler for when the player tries to play on a box
@@ -347,13 +391,15 @@ const boxHandler_click = event =>
 
             if(winner !== '_')
             {
-                if(winner === 'o')
+                const name = (winner === 'x') ? (playerX.name) : ((winner === 'o') ? (playerO.name) : (''));
+
+                if(winner === 'o' && playerO.computer)
                 {
-                    setTimeout(() => toggleWin(winner, screenWin), 1250);
+                    setTimeout(() => toggleWin(winner, name, screenWin), 1250);
                 }
                 else
                 {
-                    toggleWin(winner, screenWin)
+                    toggleWin(winner, name, screenWin)
                 }
             }
         }

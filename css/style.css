@@ -75,12 +75,25 @@ h1 {
       margin-left: 3em; }
   .screen-win {
     width: 100%;
+    padding-bottom: 10em;
     text-align: center; }
   .screen-win header {
     position: relative;
     top: 50%;
     -webkit-transform: translatey(-50%);
     transform: translatey(-50%); }
+  .screen-win h1 {
+    font-size: 2em; }
+  .screen-win div {
+      position: absolute;
+      width: 100%;
+      padding-top: 10em; }
+  .screen-win span {
+    font-size: 10em;
+    font-weight: 700;
+    line-height: 0;
+    position: relative;
+    text-align: center; }
   .screen-win p {
     font-size: 6em;
     font-weight: 700;
@@ -90,26 +103,38 @@ h1 {
       position: absolute;
       left: 0;
       right: 0;
+      bottom: 0;
       color: #000;
       font-size: 4em;
       font-weight: 400;
       line-height: 0;
       z-index: -1; }
+  .screen-win .button {
+      width: 7.5em;
+      margin: 0 2em; }
   .screen-win-t {
     background: #54D17A; }
+  .screen-win-t p:before {
+        content: "🐱";
+        top: 1.75rem;
+        font-size: 2.2em;
+        margin-top: 0.3em; }
   .screen-win-o {
     background: #FFA000; }
     .screen-win-o .button {
       color: #3688C3; }
     .screen-win-o p:before {
       content: "o";
-      top: 1.75rem; }
+      top: 1.75rem;
+      color: lightgray; }
   .screen-win-x {
     background: #3688C3; }
     .screen-win-x .button {
       color: #FFA000; }
     .screen-win-x p:before {
-      content: "×";
+      content: "X";
+      font-size: 3em;
+      font-weight: 500;
       top: 4.5rem; }
 
 .screen-board {
