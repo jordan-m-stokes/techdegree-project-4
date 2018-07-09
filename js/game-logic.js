@@ -1,48 +1,3 @@
-
-//Player class, you guessed it, represents a tic-tac-toe player
-class Player
-{
-    /*paramaters: - name     - (string) the players name
-                  - element  - (element) the element representing the player on
-                              on the board
-                  - computer - (boolean) whether the player is a computer or
-                               computer controlled
-    */ constructor(name, element, computer)
-    {
-        this.name = name;
-        this.element = element;
-        this.span = element.querySelector('.player-name');
-        this.span.textContent = name;
-        this.computer = computer;
-
-        //if player is a computer, the player's name is set to 'computer'
-        if(computer)
-        {
-            this.name = 'Computer';
-            this.span.textContent = 'Computer';
-        }
-    }
-
-    /*description - called to switch the player to their turn
-    paramaters: - active - (boolean) whether the player is on his turn
-    */ activate(active)
-    {
-        if(active)
-        {
-            this.element.classList.add('active');
-        }
-        else
-        {
-            this.element.classList.remove('active');
-        }
-    }
-}
-
-let turn = 'x';
-
-//the plays on the board 'x', 'o', and '_' for blank
-let plays = ['_','_','_','_','_','_','_','_','_'];
-
 const startButton = document.querySelector('#button-start');
 const restartButton = document.querySelector('#button-restart');
 const switchButton = document.querySelector('#button-switch');
@@ -52,9 +7,12 @@ const screenBoard = document.querySelector('.screen-board');
 const screenWin = document.querySelector('.screen-win');
 
 const playerEntry = screenStart.querySelector('input');
+const playerBannerX = document.querySelector('#playerX');
+const playerBannerO = document.querySelector('#playerO');
 
 let playerX;
 let playerO;
+let round;
 const boxes = document.querySelectorAll(".box");
 
 /* description - changes the current screen to display on webpage
@@ -284,22 +242,6 @@ returns: (integer) the index for the computer to play
     return plays.indexOf('_');
 }
 
-/* description - alternates the 'currentTurn' from 'x' to 'o' or vise-versa
-paramaters: - currentTurn - (string) the turn to alterante ('x' or 'y')
-            - playerO     - (element) represents player X's turn
-            - playerO     - (element) represents player O's turn
-returns: - turn - (string) the alternated turn
-*/ function alternateTurn(currentTurn, playerX, playerO)
-{
-    //the new turn
-    let turn = (currentTurn === 'x') ? 'o' : 'x';
-
-    playerX.activate(turn === 'x');
-    playerO.activate(turn === 'o');
-
-    return turn;
-}
-
 /*description - toggles win screen for given winner
 paramaters: - winner - (string) the winner 'x' 'o' or 't' for tie
             - name - (string)  the name of the winner
@@ -308,27 +250,68 @@ paramaters: - winner - (string) the winner 'x' 'o' or 't' for tie
 {
     const message = screen.querySelector('.message');
     const winnerName = screen.querySelector('.winner');
+    //color of the winner's name depends on who won
     const color = (winner === 'x') ? 205 : 0;
 
+    //changes to win screen
     switchScreen(screen);
 
+    //activates the win screen of the given winner
     screen.classList.add(`screen-win-${winner}`);
+    //changes win message accordingly
     message.textContent = (winner === 't') ? ('It\'s a Cat!') : ('Winner');
+    //sets winner name's text and color for display
     winnerName.textContent = name.toUpperCase();
     winnerName.style.color = `rgba(${color}, ${color}, ${color}, 0.3)`
 }
 
-playerEntry.addEventListener('keyup', event =>
+//used in conjuction with 'startRound' below
+//purpose is to store the interval id for the computers plays so it can be
+//cleared when a match is over
+let roundIntervalID;
+
+/*description - starts round, clears last round, and begins computer loop if
+                necessary
+paramaters: - round       - (Round) a 'Round' object for the round
+            - boardScreen - (Element) a element representing the screen to play
+                            on
+            - winScreen   - (Element) a element representing the screen to switch
+                          to when there is a winner
+*/ function startRound(round, boardScreen, winScreen)
 {
-    if(playerEntry.placeholder.includes('O'))
+    //gets all boxes on board
+    const boxes = boardScreen.querySelectorAll('box');
+
+    //clears board
+    round.clearBoard();
+    //switches
+    switchScreen(screenBoard);
+
+    //checks if there is a computer in this round
+    if(round.playerO.computer)
     {
-        startButton.textContent = (playerEntry.value === '') ? ('Or Play With Computer') : ('Start Game');
+        //a function that makes a play for computer
+        function playComputer()
+        {
+            //if it's the computer's round and there is not yet a win then a
+            //selection by computer is made
+            if(round.getCurrentPlayer().computer && checkForWin(round.plays) === '_')
+            {
+                round.processComputerSelection(searchForPlay(round.plays));
+            }
+            //if the computer wins the win screen is displayed
+            if(checkForWin(round.plays) === 'o')
+            {
+                //toggles win screen after a 1/4 second delay
+                setTimeout(() => toggleWin('o', 'Computer', winScreen), 250);
+                //disables loop since game is over
+                clearInterval(roundIntervalID);
+            }
+        }
+        //creates a loop that is iterated ever 1 second and calls 'playComputer'
+        roundIntervalID = setInterval(playComputer, 1000);
     }
-    if(event.keyCode === 13)
-    {
-        startButtonHandler(event);
-    }
-});
+}
 
 //a handler for the start button to start the game
 startButtonHandler = event =>
@@ -355,12 +338,28 @@ startButtonHandler = event =>
         playerEntry.placeholder = `Player X's Name...`;
         startButton.textContent = 'Next';
         //starts game
-        switchScreen(screenBoard);
+        round = new Round(playerX, playerO, boxes);
+        startRound(round, screenBoard, screenWin);
     }
 
 };
 
 startButton.addEventListener('click', startButtonHandler);
+playerEntry.addEventListener('keyup', event =>
+{
+    //if text hasn't for player o is blank than the option to play with computer
+    //is shown
+    if(playerEntry.placeholder.includes('O'))
+    {
+        startButton.textContent = (playerEntry.value === '') ? ('Or Play With Computer') : ('Start Game');
+    }
+    //if enter is hit then the users entry is submitted
+    if(event.keyCode === 13)
+    {
+        startButtonHandler(event);
+    }
+});
+
 
 //a partial handler for switch and restart buttons
 const restartHandler = event =>
@@ -371,21 +370,17 @@ const restartHandler = event =>
         return (className.includes('screen-win-')) ? (allClasses) : (`${allClasses} ${className}`);
     }, '');
 
-    //resets board
-    for(let i = 0; i < boxes.length; i++)
+    //starts new round
+    if(checkForWin(round.plays) !== '_')
     {
-        boxes[i].className = 'box';
+        startRound(round, screenBoard, screenWin);
     }
-    plays = plays.map(play => '_');
-    turn = alternateTurn('o', playerX, playerO);
 }
 
 //a handler for the restart button to restart the game
 restartButton.addEventListener('click', event =>
 {
     restartHandler(event);
-    //switches to board screen
-    switchScreen(screenBoard);
 });
 
 //a handler for switch button to allow user to switch players at the end of a
@@ -401,54 +396,31 @@ switchButton.addEventListener('click', event =>
 //a handler for when the player tries to play on a box
 const boxHandler_click = event =>
 {
-    if(turn === 'o' && playerO.computer)
-    {
-        return;
-    }
     const box = event.target;
+    let index = box.value;
 
-    //checks to make sure box isn't already taken
-    if(!box.className.includes('box-filled'))
+    //checks if computer hasn't already won then attempts to play on the box
+    //clicked on by user
+    if(checkForWin(round.plays) === '_')
     {
-        function enactTurn(box, playIndex)
+        round.processClick(index);
+    }
+
+    //gets winner if any
+    let winner = checkForWin(round.plays);
+
+    //if winner exists the win screen is shown
+    if(winner !== '_')
+    {
+        //gets name of winner
+        const winnerName = (winner === 'x') ? (playerX.name) : (winner === 'o') ? (playerO.name) : '';
+
+        //computers win handler is seperate, so a check that the computer isn't
+        //the winner is made than win screen is shown
+        if(!playerO.computer || winner !== 'o')
         {
-            //displays the box as taken to user
-            box.classList.add(`box-filled-${turn}`);
-            //stores the play this turn into memory
-            plays[playIndex] = turn;
-            const winner = checkForWin(plays);
-            //changes the turn
-            turn = alternateTurn(turn, playerX, playerO);
-
-            if(winner !== '_')
-            {
-                const name = (winner === 'x') ? (playerX.name) : ((winner === 'o') ? (playerO.name) : (''));
-
-                if(winner === 'o' && playerO.computer)
-                {
-                    setTimeout(() => toggleWin(winner, name, screenWin), 1250);
-                }
-                else
-                {
-                    toggleWin(winner, name, screenWin)
-                }
-            }
-        }
-
-        if(turn !== 'o' || !playerO.computer)
-        {
-            enactTurn(box, box.value);
-        }
-
-
-        if(turn === 'o' && playerO.computer)
-        {
-            let index = searchForPlay(plays);
-
-            if(index != -1)
-            {
-                setTimeout(() => enactTurn(boxes[index], index), 1000 + Math.floor(Math.random() * 1000));
-            }
+            toggleWin(winner, winnerName, screenWin);
+            clearInterval(roundIntervalID);
         }
     }
 };
@@ -458,10 +430,10 @@ const boxHandler_click = event =>
 const boxHandler_mouseover = event =>
 {
     const box = event.target;
-    const toDisplay = (playerO.computer) ? 'x' : turn;
+    const toDisplay = (round.turn === 'x') ? ('x') : (playerO.computer) ? ('x') : ('o');
 
     //checks to make sure box isn't already taken
-    if(!box.className.includes('box-filled'))
+    if(!box.className.includes('box-filled') && toDisplay != '_')
     {
         //sets mouseover image
         event.target.style.backgroundImage = `url(img/${toDisplay}.svg)`;
