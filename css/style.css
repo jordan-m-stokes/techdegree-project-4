@@ -93,7 +93,8 @@ h1 {
     font-weight: 700;
     line-height: 0;
     position: relative;
-    text-align: center; }
+    text-align: center;
+    white-space: nowrap; }
   .screen-win p {
     font-size: 6em;
     font-weight: 700;
